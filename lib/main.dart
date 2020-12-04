@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
         .then((wordPairs) => controller.send(Message.init(wordPairs)));
 
     controller.stream
-        .where((event) => event.item1 == Event.restart)
+        .where((event) => event.item1 == Event.new_game)
         .listen((event) {
       stopwatch.stop();
       stopwatch.reset();
@@ -51,6 +51,13 @@ class MyApp extends StatelessWidget {
       stopwatch.stop();
     });
 
+    controller.stream
+        .where((event) => event.item1 == Event.replay)
+        .listen((event) {
+      stopwatch.stop();
+      stopwatch.reset();
+    });
+
     return MaterialApp(
         home: Scaffold(
       appBar: AppBar(
@@ -62,13 +69,19 @@ class MyApp extends StatelessWidget {
               children: [
             Container(height: 200, child: Center(child: Timer(stopwatch))),
             Expanded(child: RandomWords()),
+            ButtonBar(
+              children: [
+                RaisedButton(
+                  onPressed: () => controller.send(Message.replay()),
+                  child: const Text('Replay', style: TextStyle(fontSize: 20)),
+                ),
+                RaisedButton(
+                  onPressed: () => controller.send(Message.new_game()),
+                  child: const Text('New game', style: TextStyle(fontSize: 20)),
+                )
+              ],
+            )
           ])),
-      //TODO add restart button to play again teh same game
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => controller.send(Message.restart()),
-        tooltip: 'Reset',
-        child: Icon(Icons.restore),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     ));
   }
 }
@@ -82,36 +95,45 @@ class _RandomWordsState extends State<RandomWords> {
   @override
   void initState() => super.initState();
 
+  List<MyCard> _cards;
+
   @override
   Widget build(BuildContext context) {
     int _columns = 4;
     int _rows = 4;
     return StreamBuilder<Message>(
         stream: controller.stream.where((message) =>
-            Set.of([Event.restart, Event.ready, Event.list])
+            Set.of([Event.new_game, Event.ready, Event.list, Event.replay])
                 .contains(message.item1)),
         builder: (context, AsyncSnapshot<Message> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Text("...");
           } else {
-            if (snapshot.data.item1 == Event.restart ||
+            if (snapshot.data.item1 == Event.new_game ||
                 snapshot.data.item1 == Event.ready) {
               controller.send(Message.generate((_columns * _rows) ~/ 2));
               return Container();
-            } else if (snapshot.data.item1 == Event.list) {
-              print(snapshot.data.item2);
-              List<WordPair> wordPairs = snapshot.data.item2;
-              wordPairs.addAll(wordPairs.map((wp) => wp.flip()).toList());
-              List<MyCard> cards = wordPairs
-                  .map((wp) => MyCard(wordPair: wp, controller: controller))
-                  .toList();
-              cards.shuffle();
+            } else if (snapshot.data.item1 == Event.replay) {
               return GridView.count(
                   crossAxisCount: _columns,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
                   padding: const EdgeInsets.all(5),
-                  children: cards);
+                  children: _cards);
+            } else if (snapshot.data.item1 == Event.list) {
+              print(snapshot.data.item2);
+              List<WordPair> wordPairs = snapshot.data.item2;
+              wordPairs.addAll(wordPairs.map((wp) => wp.flip()).toList());
+              _cards = wordPairs
+                  .map((wp) => MyCard(wordPair: wp, controller: controller))
+                  .toList();
+              _cards.shuffle();
+              return GridView.count(
+                  crossAxisCount: _columns,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  padding: const EdgeInsets.all(5),
+                  children: _cards);
             } else {
               return Text("UNKNOWN MESSAGE ${snapshot.data.toString()}",
                   style: TextStyle(fontSize: 16));

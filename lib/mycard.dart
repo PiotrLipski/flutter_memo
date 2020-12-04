@@ -41,6 +41,14 @@ class MyCardState extends State<MyCard> {
         }
       });
     });
+    controller.stream
+        .where((event) => event.item1 == Event.close_all)
+        .listen((event) {
+      setState(() {
+        closed = true;
+        hidden = false;
+      });
+    });
   }
 
   @override

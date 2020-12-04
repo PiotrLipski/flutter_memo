@@ -6,20 +6,22 @@ import 'package:tuple/tuple.dart';
 enum Event {
   init,
   ready,
-  restart,
   generate,
   list,
   open,
   close,
   hide,
   start_game,
-  stop_game
+  stop_game,
+  replay,
+  new_game,
+  close_all
 }
 
 class Message extends Tuple2<Event, dynamic> {
   Message.init(List<WordPair> list) : super(Event.init, list);
   Message.ready() : super(Event.ready, null);
-  Message.restart() : super(Event.restart, null);
+  Message.new_game() : super(Event.new_game, null);
   Message.generate(int numberOfItems) : super(Event.generate, numberOfItems);
   Message.list(List<WordPair> list) : super(Event.list, list);
   Message.open(Tuple2<Key, WordPair> tuple) : super(Event.open, tuple);
@@ -27,6 +29,8 @@ class Message extends Tuple2<Event, dynamic> {
   Message.hide(Tuple2<Key, WordPair> tuple) : super(Event.hide, tuple);
   Message.startGame() : super(Event.start_game, null);
   Message.stopGame() : super(Event.stop_game, null);
+  Message.replay() : super(Event.replay, null);
+  Message.close_all() : super(Event.close_all, null);
 }
 
 class Controller {
@@ -63,10 +67,15 @@ class Controller {
           wordPairs.shuffle();
           send(Message.list(wordPairs.take(numberOfCards).toList()));
           break;
-        case Event.restart:
+        case Event.new_game:
           wordPairs.shuffle();
           started = false;
           numberOfMatched = 0;
+          break;
+        case Event.replay:
+          started = false;
+          numberOfMatched = 0;
+          send(Message.close_all());
           break;
         case Event.open:
           if (!started) {
