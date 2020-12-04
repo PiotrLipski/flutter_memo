@@ -1,3 +1,3 @@
 # memo
 
-Implementation of demo in Flutter.
+Implementation of memo in Flutter.
